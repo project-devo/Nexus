@@ -1,0 +1,6 @@
+C:\everything mine\project1\FileManager\publish\Nexus.exe
+C:\everything mine\project1\FileManager\publish\Nexus.dll
+C:\everything mine\project1\FileManager\publish\Nexus.deps.json
+C:\everything mine\project1\FileManager\publish\Nexus.runtimeconfig.json
+C:\everything mine\project1\FileManager\publish\Nexus.pdb
+C:\everything mine\project1\FileManager\publish\CommunityToolkit.Mvvm.dll

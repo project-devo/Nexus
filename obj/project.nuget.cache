@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "OvCkJrAjONA=",
+  "success": true,
+  "projectFilePath": "C:\\everything mine\\project1\\FileManager\\FileManager.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\admin\\.nuget\\packages\\communitytoolkit.mvvm\\8.3.2\\communitytoolkit.mvvm.8.3.2.nupkg.sha512",
+    "C:\\Users\\admin\\.nuget\\packages\\microsoft.visualbasic\\10.3.0\\microsoft.visualbasic.10.3.0.nupkg.sha512"
+  ],
+  "logs": []
+}
