@@ -1,7 +1,10 @@
 bin/
 obj/
 publish/
+dist/
+*.zip
 *.user
 *.suo
 .vs/
 *.cache
+TestResults/
