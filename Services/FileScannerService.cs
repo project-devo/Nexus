@@ -9,11 +9,11 @@ using Nexus.Models;
 
 namespace Nexus.Services;
 
-public class FileScannerService
+public class FileScannerService : IFileScannerService
 {
     private static readonly string[] ExcludedDirectories = {
         "$RECYCLE.BIN", "System Volume Information", "Windows", "Program Files",
-        "Program Files (x86)", "ProgramData", "PerfLogs"
+        "Program Files (x86)", "ProgramData", "PerfLogs", ".git", ".vs"
     };
 
     public async Task<ObservableCollection<FileItem>> ScanLocationsAsync(
@@ -21,30 +21,42 @@ public class FileScannerService
         IProgress<int>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var allFiles = new ObservableCollection<FileItem>();
         var enabledLocations = locations.Where(l => l.IsEnabled).ToList();
         int totalLocations = enabledLocations.Count;
         int completedLocations = 0;
 
-        foreach (var location in enabledLocations)
+        var allItems = await Task.Run(() =>
         {
-            if (cancellationToken.IsCancellationRequested) break;
+            var aggregated = new List<FileItem>();
 
-            if (Directory.Exists(location.Path))
+            foreach (var location in enabledLocations)
             {
-                var files = await Task.Run(() => ScanDirectory(location.Path, location.Name, cancellationToken), cancellationToken);
-                foreach (var file in files)
+                if (cancellationToken.IsCancellationRequested) break;
+
+                if (Directory.Exists(location.Path))
                 {
-                    allFiles.Add(file);
+                    var files = ScanDirectory(location.Path, location.Name, cancellationToken);
+                    aggregated.AddRange(files);
+                    location.FileCount = files.Count;
                 }
-                location.FileCount = files.Count;
+
+                completedLocations++;
+                if (totalLocations > 0)
+                {
+                    progress?.Report((completedLocations * 100) / totalLocations);
+                }
             }
 
-            completedLocations++;
-            progress?.Report((completedLocations * 100) / totalLocations);
+            return aggregated;
+        }, cancellationToken);
+
+        var collection = new ObservableCollection<FileItem>();
+        foreach (var item in allItems)
+        {
+            collection.Add(item);
         }
 
-        return allFiles;
+        return collection;
     }
 
     public async Task<ObservableCollection<FileItem>> ScanSingleFolderAsync(
@@ -52,9 +64,16 @@ public class FileScannerService
         string locationName,
         CancellationToken cancellationToken = default)
     {
-        var files = await Task.Run(() => ScanDirectory(folderPath, locationName, cancellationToken), cancellationToken);
+        var items = await Task.Run(() =>
+        {
+            return ScanDirectory(folderPath, locationName, cancellationToken);
+        }, cancellationToken);
+
         var collection = new ObservableCollection<FileItem>();
-        foreach (var file in files) collection.Add(file);
+        foreach (var item in items)
+        {
+            collection.Add(item);
+        }
         return collection;
     }
 

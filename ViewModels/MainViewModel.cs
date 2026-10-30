@@ -13,9 +13,13 @@ namespace Nexus.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly FileScannerService _scannerService;
-    private readonly SearchService _searchService;
-    private readonly FileOperationService _fileOperationService;
+    private readonly IFileScannerService _scannerService;
+    private readonly ISearchService _searchService;
+    private readonly IFileOperationService _fileOperationService;
+    private readonly IDialogService _dialogService;
+
+    private CancellationTokenSource? _scanCts;
+    private CancellationTokenSource? _searchDebounceCts;
 
     [ObservableProperty]
     private bool _isDarkMode = true;
@@ -68,11 +72,24 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _searchContentEnabled;
 
-    public MainViewModel()
+    public MainViewModel() : this(
+        new FileScannerService(),
+        new SearchService(),
+        new FileOperationService(),
+        new DialogService(new FileOperationService()))
     {
-        _scannerService = new FileScannerService();
-        _searchService = new SearchService();
-        _fileOperationService = new FileOperationService();
+    }
+
+    public MainViewModel(
+        IFileScannerService scannerService,
+        ISearchService searchService,
+        IFileOperationService fileOperationService,
+        IDialogService dialogService)
+    {
+        _scannerService = scannerService;
+        _searchService = searchService;
+        _fileOperationService = fileOperationService;
+        _dialogService = dialogService;
 
         ScanLocations = new ObservableCollection<ScanLocation>(
             FileScannerService.GetDefaultSystemLocations());
@@ -88,21 +105,42 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = "Scanning locations...";
         AllFiles.Clear();
         DisplayedFiles.Clear();
+        SelectedFiles.Clear();
 
         var progress = new Progress<int>(value => ScanProgress = value);
-        var cts = new CancellationToken();
+        _scanCts?.Dispose();
+        _scanCts = new CancellationTokenSource();
 
         try
         {
-            var files = await _scannerService.ScanLocationsAsync(ScanLocations, progress, cts);
-            
-            Application.Current.Dispatcher.Invoke(() =>
+            var files = await _scannerService.ScanLocationsAsync(ScanLocations, progress, _scanCts.Token);
+
+            if (_scanCts.IsCancellationRequested)
+            {
+                StatusMessage = "Scan cancelled";
+                return;
+            }
+
+            void UpdateUi()
             {
                 AllFiles = files;
                 ApplyFilters();
                 UpdateAvailableExtensions();
                 StatusMessage = $"Found {AllFiles.Count} items";
-            });
+            }
+
+            if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+            {
+                Application.Current.Dispatcher.Invoke(UpdateUi);
+            }
+            else
+            {
+                UpdateUi();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "Scan cancelled";
         }
         catch (Exception ex)
         {
@@ -115,14 +153,39 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void CancelScan()
+    {
+        if (IsScanning && _scanCts != null)
+        {
+            _scanCts.Cancel();
+            StatusMessage = "Cancelling scan...";
+        }
+    }
+
+    [RelayCommand]
+    private void PickAndAddCustomFolder()
+    {
+        var path = _dialogService.ShowFolderBrowser("Select folder to add to Locations");
+        if (!string.IsNullOrEmpty(path))
+        {
+            AddCustomLocation(path);
+        }
+    }
+
+    [RelayCommand]
     private void AddCustomLocation(string path)
     {
         if (!string.IsNullOrEmpty(path) && System.IO.Directory.Exists(path))
         {
-            var existing = ScanLocations.FirstOrDefault(l => l.Path == path);
+            var existing = ScanLocations.FirstOrDefault(l => string.Equals(l.Path, path, StringComparison.OrdinalIgnoreCase));
             if (existing == null)
             {
                 ScanLocations.Add(ScanLocation.CreateCustomLocation(path));
+                StatusMessage = $"Added folder: {System.IO.Path.GetFileName(path)}";
+            }
+            else
+            {
+                existing.IsEnabled = true;
             }
         }
     }
@@ -145,22 +208,46 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    partial void OnSearchTermChanged(string value) => ApplyFilters();
+    partial void OnSearchTermChanged(string value) => DebounceApplyFilters();
     partial void OnSelectedExtensionChanged(string value) => ApplyFilters();
     partial void OnSelectedSizeFilterChanged(FileSizeFilter value) => ApplyFilters();
     partial void OnSelectedDateFilterChanged(DateFilter value) => ApplyFilters();
     partial void OnSortFieldChanged(SortField value) => ApplyFilters();
     partial void OnSortDirectionChanged(SortDirection value) => ApplyFilters();
 
+    private void DebounceApplyFilters()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+
+        Task.Delay(200, token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled)
+            {
+                void Run() => ApplyFilters();
+                if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+                {
+                    Application.Current.Dispatcher.Invoke(Run);
+                }
+                else
+                {
+                    Run();
+                }
+            }
+        }, TaskScheduler.Default);
+    }
+
     [RelayCommand]
     private void ToggleSortDirection()
     {
-        SortDirection = SortDirection == SortDirection.Ascending 
-            ? SortDirection.Descending 
+        SortDirection = SortDirection == SortDirection.Ascending
+            ? SortDirection.Descending
             : SortDirection.Ascending;
     }
 
-    private void ApplyFilters()
+    public void ApplyFilters()
     {
         var filtered = _searchService.FilterAndSort(
             AllFiles,
@@ -171,17 +258,26 @@ public partial class MainViewModel : ObservableObject
             SortField,
             SortDirection);
 
-        Application.Current.Dispatcher.Invoke(() =>
+        void Update()
         {
             DisplayedFiles = filtered;
             UpdateSelectedFiles();
-        });
+        }
+
+        if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+        {
+            Application.Current.Dispatcher.Invoke(Update);
+        }
+        else
+        {
+            Update();
+        }
     }
 
     private void UpdateAvailableExtensions()
     {
         var extensions = _searchService.GetUniqueExtensions(AllFiles);
-        Application.Current.Dispatcher.Invoke(() =>
+        void Update()
         {
             AvailableExtensions.Clear();
             AvailableExtensions.Add("All");
@@ -189,10 +285,19 @@ public partial class MainViewModel : ObservableObject
             {
                 AvailableExtensions.Add(ext);
             }
-        });
+        }
+
+        if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+        {
+            Application.Current.Dispatcher.Invoke(Update);
+        }
+        else
+        {
+            Update();
+        }
     }
 
-    private void UpdateSelectedFiles()
+    public void UpdateSelectedFiles()
     {
         SelectedFiles.Clear();
         foreach (var file in DisplayedFiles.Where(f => f.IsSelected))
@@ -208,6 +313,7 @@ public partial class MainViewModel : ObservableObject
         {
             file.IsSelected = true;
         }
+        UpdateSelectedFiles();
     }
 
     [RelayCommand]
@@ -217,6 +323,25 @@ public partial class MainViewModel : ObservableObject
         {
             file.IsSelected = false;
         }
+        SelectedFiles.Clear();
+    }
+
+    [RelayCommand]
+    private async Task OpenBatchRenameAsync()
+    {
+        var selected = DisplayedFiles.Where(f => f.IsSelected).ToList();
+        if (!selected.Any())
+        {
+            _dialogService.ShowInfo("Batch Rename", "Please select at least one file to rename.");
+            return;
+        }
+
+        var result = _dialogService.ShowBatchRenameDialog(selected);
+        if (result == true)
+        {
+            StatusMessage = "Batch rename completed.";
+            await ScanLocationsAsync();
+        }
     }
 
     [RelayCommand]
@@ -225,16 +350,12 @@ public partial class MainViewModel : ObservableObject
         var files = DisplayedFiles.Where(f => f.IsSelected).ToList();
         if (!files.Any()) return;
 
-        using var dialog = new System.Windows.Forms.FolderBrowserDialog
-        {
-            Description = "Select destination folder"
-        };
-
-        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        var destination = _dialogService.ShowFolderBrowser("Select destination folder for copy");
+        if (!string.IsNullOrEmpty(destination))
         {
             StatusMessage = "Copying files...";
-            var success = await _fileOperationService.CopyFilesAsync(files, dialog.SelectedPath);
-            StatusMessage = success ? "Copy completed" : "Copy completed with errors";
+            var success = await _fileOperationService.CopyFilesAsync(files, destination);
+            StatusMessage = success ? "Copy completed successfully." : "Copy completed with errors.";
         }
     }
 
@@ -244,16 +365,12 @@ public partial class MainViewModel : ObservableObject
         var files = DisplayedFiles.Where(f => f.IsSelected).ToList();
         if (!files.Any()) return;
 
-        using var dialog = new System.Windows.Forms.FolderBrowserDialog
-        {
-            Description = "Select destination folder"
-        };
-
-        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        var destination = _dialogService.ShowFolderBrowser("Select destination folder for move");
+        if (!string.IsNullOrEmpty(destination))
         {
             StatusMessage = "Moving files...";
-            var success = await _fileOperationService.MoveFilesAsync(files, dialog.SelectedPath);
-            StatusMessage = success ? "Move completed" : "Move completed with errors";
+            var success = await _fileOperationService.MoveFilesAsync(files, destination);
+            StatusMessage = success ? "Move completed successfully." : "Move completed with errors.";
             await ScanLocationsAsync();
         }
     }
@@ -264,17 +381,15 @@ public partial class MainViewModel : ObservableObject
         var files = DisplayedFiles.Where(f => f.IsSelected).ToList();
         if (!files.Any()) return;
 
-        var result = MessageBox.Show(
-            $"Delete {files.Count} selected item(s)?",
+        var confirmed = _dialogService.ShowConfirmation(
             "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            $"Send {files.Count} selected item(s) to the Recycle Bin?");
 
-        if (result == MessageBoxResult.Yes)
+        if (confirmed)
         {
             StatusMessage = "Deleting files...";
-            var success = await _fileOperationService.DeleteFilesAsync(files);
-            StatusMessage = success ? "Delete completed" : "Delete completed with errors";
+            var success = await _fileOperationService.DeleteFilesAsync(files, useRecycleBin: true);
+            StatusMessage = success ? "Delete completed successfully." : "Delete completed with errors.";
             await ScanLocationsAsync();
         }
     }
@@ -308,7 +423,8 @@ public partial class MainViewModel : ObservableObject
     private void ApplyTheme()
     {
         var app = Application.Current;
-        
+        if (app == null) return;
+
         if (IsDarkMode)
         {
             app.Resources["BackgroundColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#0D1117");
@@ -318,7 +434,7 @@ public partial class MainViewModel : ObservableObject
             app.Resources["PrimaryTextColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#F0F6FC");
             app.Resources["SecondaryTextColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#8B949E");
             app.Resources["AccentColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#58A6FF");
-            
+
             app.Resources["BackgroundBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["BackgroundColor"]);
             app.Resources["PanelBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["PanelColor"]);
             app.Resources["CardBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["CardColor"]);
@@ -336,7 +452,7 @@ public partial class MainViewModel : ObservableObject
             app.Resources["PrimaryTextColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#1F2328");
             app.Resources["SecondaryTextColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#656D76");
             app.Resources["AccentColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#0969DA");
-            
+
             app.Resources["BackgroundBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["BackgroundColor"]);
             app.Resources["PanelBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["PanelColor"]);
             app.Resources["CardBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["CardColor"]);

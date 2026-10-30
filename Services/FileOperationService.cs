@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,7 +7,7 @@ using Nexus.Models;
 
 namespace Nexus.Services;
 
-public class FileOperationService
+public class FileOperationService : IFileOperationService
 {
     public async Task<bool> CopyFilesAsync(IEnumerable<FileItem> files, string destinationPath)
     {
@@ -49,12 +48,16 @@ public class FileOperationService
                 {
                     if (file.IsDirectory)
                     {
-                        MoveDirectory(file.FullName, Path.Combine(destinationPath, file.Name));
+                        MoveDirectorySafely(file.FullName, Path.Combine(destinationPath, file.Name));
                     }
                     else
                     {
                         string destFile = Path.Combine(destinationPath, file.Name);
-                        File.Move(file.FullName, destFile, true);
+                        if (File.Exists(destFile))
+                        {
+                            File.Delete(destFile);
+                        }
+                        File.Move(file.FullName, destFile);
                     }
                 }
                 catch
@@ -147,13 +150,33 @@ public class FileOperationService
             bool success = true;
             int index = 1;
 
+            // Compute hash pattern length (e.g. ### -> 3, ## -> 2, # -> 1)
+            int hashCount = 0;
+            int firstHash = pattern.IndexOf('#');
+            if (firstHash >= 0)
+            {
+                int endHash = firstHash;
+                while (endHash < pattern.Length && pattern[endHash] == '#')
+                {
+                    endHash++;
+                }
+                hashCount = endHash - firstHash;
+            }
+
+            string hashPlaceholder = hashCount > 0 ? new string('#', hashCount) : "#";
+            string formatString = hashCount > 1 ? $"D{hashCount}" : "D";
+
             foreach (var file in files)
             {
                 try
                 {
                     string extension = Path.GetExtension(file.Name);
-                    string newName = pattern.Replace("#", index.ToString("D3"));
+                    string formattedIndex = index.ToString(formatString);
+                    string newBaseName = pattern.Contains('#') 
+                        ? pattern.Replace(hashPlaceholder, formattedIndex) 
+                        : $"{pattern}_{formattedIndex}";
 
+                    string newName = newBaseName;
                     if (!includeExtension && !file.IsDirectory)
                     {
                         newName += extension;
@@ -217,11 +240,24 @@ public class FileOperationService
     {
         try
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            string targetPath = file.IsDirectory ? file.FullName : file.ParentPath;
+            if (File.Exists(file.FullName) && !file.IsDirectory)
             {
-                FileName = file.ParentPath,
-                UseShellExecute = true
-            });
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{file.FullName}\"",
+                    UseShellExecute = true
+                });
+            }
+            else if (Directory.Exists(targetPath))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = targetPath,
+                    UseShellExecute = true
+                });
+            }
         }
         catch { }
     }
@@ -243,26 +279,34 @@ public class FileOperationService
         }
     }
 
-    private void MoveDirectory(string sourceDir, string destinationDir)
+    private void MoveDirectorySafely(string sourceDir, string destinationDir)
     {
-        if (Directory.Exists(destinationDir))
+        if (!Directory.Exists(destinationDir))
         {
-            Directory.Delete(destinationDir, true);
+            Directory.Move(sourceDir, destinationDir);
+            return;
         }
-        Directory.Move(sourceDir, destinationDir);
-    }
 
-    public static ObservableCollection<FileItem> RemoveDeletedItems(ObservableCollection<FileItem> files, IEnumerable<FileItem> removedItems)
-    {
-        var removedPaths = new HashSet<string>(removedItems.Select(f => f.FullName));
-        var result = new ObservableCollection<FileItem>();
-        foreach (var file in files)
+        // Merge directories safely rather than deleting the destination
+        foreach (var file in Directory.GetFiles(sourceDir))
         {
-            if (!removedPaths.Contains(file.FullName))
+            string destFile = Path.Combine(destinationDir, Path.GetFileName(file));
+            if (File.Exists(destFile))
             {
-                result.Add(file);
+                File.Delete(destFile);
             }
+            File.Move(file, destFile);
         }
-        return result;
+
+        foreach (var dir in Directory.GetDirectories(sourceDir))
+        {
+            string destDir = Path.Combine(destinationDir, Path.GetFileName(dir));
+            MoveDirectorySafely(dir, destDir);
+        }
+
+        if (Directory.Exists(sourceDir) && !Directory.EnumerateFileSystemEntries(sourceDir).Any())
+        {
+            Directory.Delete(sourceDir);
+        }
     }
 }

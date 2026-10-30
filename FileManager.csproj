@@ -13,10 +13,14 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" />
+    <Compile Remove="Nexus.Tests\**" />
+    <EmbeddedResource Remove="Nexus.Tests\**" />
+    <None Remove="Nexus.Tests\**" />
   </ItemGroup>
 
 </Project>

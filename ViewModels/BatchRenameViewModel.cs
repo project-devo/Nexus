@@ -1,8 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Nexus.Models;
@@ -10,15 +10,20 @@ using Nexus.Services;
 
 namespace Nexus.ViewModels;
 
+public record RenamePreviewItem(string OriginalName, string NewName);
+
 public partial class BatchRenameViewModel : ObservableObject
 {
-    private readonly FileOperationService _fileOperationService;
+    private readonly IFileOperationService _fileOperationService;
 
     [ObservableProperty]
     private ObservableCollection<FileItem> _selectedFiles = new();
 
     [ObservableProperty]
-    private string _pattern = string.Empty;
+    private ObservableCollection<RenamePreviewItem> _previewItems = new();
+
+    [ObservableProperty]
+    private string _pattern = "File_###";
 
     [ObservableProperty]
     private bool _includeExtension;
@@ -32,9 +37,15 @@ public partial class BatchRenameViewModel : ObservableObject
     [ObservableProperty]
     private string _statusMessage = string.Empty;
 
-    public BatchRenameViewModel()
+    public event Action<bool?>? RequestClose;
+
+    public BatchRenameViewModel() : this(new FileOperationService())
     {
-        _fileOperationService = new FileOperationService();
+    }
+
+    public BatchRenameViewModel(IFileOperationService fileOperationService)
+    {
+        _fileOperationService = fileOperationService;
     }
 
     public void LoadFiles(IEnumerable<FileItem> files)
@@ -48,45 +59,65 @@ public partial class BatchRenameViewModel : ObservableObject
     }
 
     partial void OnPatternChanged(string value) => UpdatePreview();
+    partial void OnIncludeExtensionChanged(bool value) => UpdatePreview();
 
-    private void UpdatePreview()
+    public void UpdatePreview()
     {
+        PreviewItems.Clear();
+
         if (SelectedFiles.Count == 0)
         {
             PreviewText = "No files selected";
             return;
         }
 
-        var preview = new System.Text.StringBuilder();
-        preview.AppendLine("Preview:");
-        
+        if (string.IsNullOrWhiteSpace(Pattern))
+        {
+            PreviewText = "Enter a naming pattern (e.g. Document_###)";
+            return;
+        }
+
+        int hashCount = 0;
+        int firstHash = Pattern.IndexOf('#');
+        if (firstHash >= 0)
+        {
+            int endHash = firstHash;
+            while (endHash < Pattern.Length && Pattern[endHash] == '#')
+            {
+                endHash++;
+            }
+            hashCount = endHash - firstHash;
+        }
+
+        string hashPlaceholder = hashCount > 0 ? new string('#', hashCount) : "#";
+        string formatString = hashCount > 1 ? $"D{hashCount}" : "D";
+
         int index = 1;
-        foreach (var file in SelectedFiles.Take(10))
+        foreach (var file in SelectedFiles)
         {
             string extension = System.IO.Path.GetExtension(file.Name);
-            string newName = Pattern.Replace("#", index.ToString("D3"));
-            
+            string formattedIndex = index.ToString(formatString);
+            string newBaseName = Pattern.Contains('#')
+                ? Pattern.Replace(hashPlaceholder, formattedIndex)
+                : $"{Pattern}_{formattedIndex}";
+
+            string newName = newBaseName;
             if (!IncludeExtension && !file.IsDirectory)
             {
                 newName += extension;
             }
-            
-            preview.AppendLine($"  {file.Name} → {newName}");
+
+            PreviewItems.Add(new RenamePreviewItem(file.Name, newName));
             index++;
         }
 
-        if (SelectedFiles.Count > 10)
-        {
-            preview.AppendLine($"  ... and {SelectedFiles.Count - 10} more");
-        }
-
-        PreviewText = preview.ToString();
+        PreviewText = $"Ready to rename {SelectedFiles.Count} items.";
     }
 
     [RelayCommand]
     private async Task ExecuteRenameAsync()
     {
-        if (SelectedFiles.Count == 0 || string.IsNullOrEmpty(Pattern))
+        if (SelectedFiles.Count == 0 || string.IsNullOrWhiteSpace(Pattern))
         {
             StatusMessage = "Please select files and enter a pattern";
             return;
@@ -98,18 +129,18 @@ public partial class BatchRenameViewModel : ObservableObject
         var success = await _fileOperationService.BatchRenameAsync(
             SelectedFiles, Pattern, IncludeExtension);
 
-        StatusMessage = success ? "Rename completed successfully!" : "Rename completed with some errors";
         IsBusy = false;
+        StatusMessage = success ? "Rename completed successfully!" : "Rename completed with some errors";
 
         if (success)
         {
-            CloseCommand?.Execute(null);
+            RequestClose?.Invoke(true);
         }
     }
 
     [RelayCommand]
     private void Close()
     {
-        // Close dialog
+        RequestClose?.Invoke(false);
     }
 }

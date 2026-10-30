@@ -9,7 +9,7 @@ using Nexus.Models;
 
 namespace Nexus.Services;
 
-public class SearchService
+public class SearchService : ISearchService
 {
     public async Task<ObservableCollection<FileItem>> SearchAsync(
         ObservableCollection<FileItem> allFiles,
@@ -41,9 +41,11 @@ public class SearchService
                     if (!nameMatch && !contentMatch) continue;
                 }
 
-                if (!string.IsNullOrEmpty(extensionFilter) && extensionFilter != "All")
+                if (!string.IsNullOrEmpty(extensionFilter) && !extensionFilter.Equals("All", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!file.Extension.Equals(extensionFilter, StringComparison.OrdinalIgnoreCase)) continue;
+                    string cleanFilter = extensionFilter.TrimStart('.').ToLowerInvariant();
+                    if (!file.Extension.TrimStart('.').Equals(cleanFilter, StringComparison.OrdinalIgnoreCase))
+                        continue;
                 }
 
                 if (!MatchesSizeFilter(file.Size, sizeFilter)) continue;
@@ -71,13 +73,14 @@ public class SearchService
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            var term = searchTerm.ToLowerInvariant();
-            query = query.Where(f => f.Name.ToLowerInvariant().Contains(term));
+            var term = searchTerm.Trim();
+            query = query.Where(f => f.Name.Contains(term, StringComparison.OrdinalIgnoreCase));
         }
 
-        if (!string.IsNullOrEmpty(extensionFilter) && extensionFilter != "All")
+        if (!string.IsNullOrEmpty(extensionFilter) && !extensionFilter.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
-            query = query.Where(f => f.Extension.Equals(extensionFilter, StringComparison.OrdinalIgnoreCase));
+            string cleanFilter = extensionFilter.TrimStart('.').ToLowerInvariant();
+            query = query.Where(f => f.Extension.TrimStart('.').Equals(cleanFilter, StringComparison.OrdinalIgnoreCase));
         }
 
         query = sizeFilter switch
@@ -115,8 +118,8 @@ public class SearchService
                 ? query.OrderBy(f => f.DateCreated)
                 : query.OrderByDescending(f => f.DateCreated),
             SortField.Extension => sortDirection == SortDirection.Ascending
-                ? query.OrderBy(f => f.Extension)
-                : query.OrderByDescending(f => f.Extension),
+                ? query.OrderBy(f => f.ExtensionClean, StringComparer.OrdinalIgnoreCase)
+                : query.OrderByDescending(f => f.ExtensionClean, StringComparer.OrdinalIgnoreCase),
             _ => query
         };
 
@@ -128,8 +131,8 @@ public class SearchService
     public List<string> GetUniqueExtensions(ObservableCollection<FileItem> files)
     {
         return files
-            .Where(f => !f.IsDirectory && !string.IsNullOrEmpty(f.Extension))
-            .Select(f => f.Extension.ToUpperInvariant().TrimStart('.'))
+            .Where(f => !f.IsDirectory && !string.IsNullOrWhiteSpace(f.Extension))
+            .Select(f => f.Extension.TrimStart('.').ToUpperInvariant())
             .Distinct()
             .OrderBy(e => e)
             .ToList();

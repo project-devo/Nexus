@@ -19,6 +19,25 @@
         <conv:BoolToVisibilityConverter x:Key="BoolToVis"/>
         <conv:InverseBoolConverter x:Key="InverseBool"/>
         <conv:BoolToInverseVisibilityConverter x:Key="BoolToInverseVis"/>
+
+        <ContextMenu x:Key="RowContextMenu">
+            <MenuItem Header="▶  Open" 
+                      Command="{Binding DataContext.OpenFileCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                      CommandParameter="{Binding}"/>
+            <MenuItem Header="📁  Open Containing Folder" 
+                      Command="{Binding DataContext.OpenContainingFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                      CommandParameter="{Binding}"/>
+            <Separator/>
+            <MenuItem Header="📋  Copy Selected..." 
+                      Command="{Binding DataContext.CopyFilesCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+            <MenuItem Header="📦  Move Selected..." 
+                      Command="{Binding DataContext.MoveFilesCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+            <MenuItem Header="🏷️  Batch Rename Selected..." 
+                      Command="{Binding DataContext.OpenBatchRenameCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+            <Separator/>
+            <MenuItem Header="🗑️  Delete (Recycle Bin)" 
+                      Command="{Binding DataContext.DeleteFilesCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+        </ContextMenu>
         
         <Style x:Key="ActionButton" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
@@ -188,6 +207,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 
                 <!-- Logo/Title -->
@@ -214,15 +234,24 @@
                         FontSize="18" Padding="12,8"
                         ToolTip="Toggle Light/Dark Mode"/>
                 
-                <!-- Scan Button -->
+                <!-- Stop / Cancel Button -->
                 <Button Grid.Column="3" 
+                        Content="🛑 Stop"
+                        Command="{Binding CancelScanCommand}"
+                        Style="{StaticResource SecondaryButton}"
+                        Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}}"
+                        ToolTip="Stop Scanning"
+                        Margin="4,0"/>
+
+                <!-- Scan Button -->
+                <Button Grid.Column="4" 
                         Content="🔍 Scan Locations"
                         Command="{Binding ScanLocationsCommand}"
                         Style="{StaticResource ActionButton}"
                         IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBool}}"/>
                 
                 <!-- Progress -->
-                <ProgressBar Grid.Column="4" 
+                <ProgressBar Grid.Column="5" 
                              Width="100" Height="8" 
                              Value="{Binding ScanProgress}" Maximum="100"
                              Foreground="{DynamicResource AccentBrush}"
@@ -313,6 +342,7 @@
                     
                     <!-- Add Folder Button -->
                     <Button Grid.Row="2" Content="+ Add Custom Folder" 
+                            Command="{Binding PickAndAddCustomFolderCommand}"
                             Style="{StaticResource SecondaryButton}"
                             HorizontalAlignment="Stretch"
                             Margin="0,12,0,0"/>
@@ -433,6 +463,9 @@
                             <Button Content="📦 Move" 
                                     Command="{Binding MoveFilesCommand}"
                                     Style="{StaticResource ActionButton}"/>
+                            <Button Content="🏷️ Batch Rename" 
+                                    Command="{Binding OpenBatchRenameCommand}"
+                                    Style="{StaticResource ActionButton}"/>
                             <Button Content="🗑️ Delete" 
                                     Command="{Binding DeleteFilesCommand}"
                                     Style="{StaticResource ActionButton}"
@@ -454,7 +487,11 @@
                               HeadersVisibility="Column"
                               BorderThickness="1"
                               BorderBrush="{DynamicResource BorderBrush}"
-                              RowHeight="42">
+                              RowHeight="42"
+                              EnableRowVirtualization="True"
+                              VirtualizingStackPanel.IsVirtualizing="True"
+                              VirtualizingStackPanel.VirtualizationMode="Recycling"
+                              ScrollViewer.CanContentScroll="True">
                         
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader">
@@ -501,6 +538,8 @@
                                 <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="BorderThickness" Value="0,0,0,1"/>
                                 <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                                <Setter Property="ContextMenu" Value="{StaticResource RowContextMenu}"/>
+                                <EventSetter Event="MouseDoubleClick" Handler="OnRowDoubleClick"/>
                                 <Style.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
                                         <Setter Property="Background" Value="#1F4172"/>
@@ -513,7 +552,7 @@
                         </DataGrid.RowStyle>
                         
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Binding="{Binding IsSelected}" Width="50">
+                            <DataGridCheckBoxColumn Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="50">
                                 <DataGridCheckBoxColumn.HeaderStyle>
                                     <Style TargetType="DataGridColumnHeader">
                                         <Setter Property="HorizontalContentAlignment" Value="Center"/>

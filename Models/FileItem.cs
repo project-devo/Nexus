@@ -13,6 +13,7 @@ public class FileItem : INotifyPropertyChanged
     public string Name { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string Extension { get; set; } = string.Empty;
+    public string ExtensionClean => string.IsNullOrEmpty(Extension) ? string.Empty : Extension.TrimStart('.').ToUpperInvariant();
     public long Size { get; set; }
     public string FormattedSize => FormatSize(Size);
     public DateTime DateModified { get; set; }
@@ -26,8 +27,11 @@ public class FileItem : INotifyPropertyChanged
         get => _displayName;
         set
         {
-            _displayName = value;
-            OnPropertyChanged();
+            if (_displayName != value)
+            {
+                _displayName = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -36,8 +40,11 @@ public class FileItem : INotifyPropertyChanged
         get => _isSelected;
         set
         {
-            _isSelected = value;
-            OnPropertyChanged();
+            if (_isSelected != value)
+            {
+                _isSelected = value;
+                OnPropertyChanged();
+            }
         }
     }
 
