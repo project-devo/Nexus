@@ -28,7 +28,10 @@ A high-performance, asynchronous Windows desktop file manager built with **.NET 
   - Double-click to open files in default applications.
   - Full right-click context menu (Open, Open Containing Folder, Copy, Move, Batch Rename, Recycle Bin Delete).
   - Add custom directories to scan locations dynamically.
-- **🎨 Theme Switching**: Seamless dark and light themes with dynamic resource brushes.
+- **🎨 Windows 11 Fluent Design System & Dynamic Theming**:
+  - Native Windows 11 WinUI 3 styling with Segoe Fluent Icons / MDL2 vector glyphs.
+  - Signature Blue theme tokens with seamless real-time switching between Fluent Dark (`#202020` Mica / Smoke) and Fluent Light (`#F3F3F3` Cloud).
+  - Unified Windows 11 Command Bar, visual file type badges, and illustrated empty states.
 - **🧪 100% Testable Architecture**:
   - Decoupled OS dialogs behind `IDialogService`.
   - Service abstractions (`IFileScannerService`, `ISearchService`, `IFileOperationService`).

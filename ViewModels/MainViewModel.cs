@@ -25,7 +25,7 @@ public partial class MainViewModel : ObservableObject
     private bool _isDarkMode = true;
 
     [ObservableProperty]
-    private string _themeIcon = "🌙";
+    private string _themeIcon = "\uE708";
 
     [ObservableProperty]
     private ObservableCollection<ScanLocation> _scanLocations = new();
@@ -416,7 +416,7 @@ public partial class MainViewModel : ObservableObject
     private void ToggleTheme()
     {
         IsDarkMode = !IsDarkMode;
-        ThemeIcon = IsDarkMode ? "🌙" : "☀️";
+        ThemeIcon = IsDarkMode ? "\uE708" : "\uE706";
         ApplyTheme();
     }
 
@@ -427,39 +427,50 @@ public partial class MainViewModel : ObservableObject
 
         if (IsDarkMode)
         {
-            app.Resources["BackgroundColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#0D1117");
-            app.Resources["PanelColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#161B22");
-            app.Resources["CardColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#21262D");
-            app.Resources["BorderColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#30363D");
-            app.Resources["PrimaryTextColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#F0F6FC");
-            app.Resources["SecondaryTextColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#8B949E");
-            app.Resources["AccentColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#58A6FF");
-
-            app.Resources["BackgroundBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["BackgroundColor"]);
-            app.Resources["PanelBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["PanelColor"]);
-            app.Resources["CardBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["CardColor"]);
-            app.Resources["BorderBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["BorderColor"]);
-            app.Resources["PrimaryTextBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["PrimaryTextColor"]);
-            app.Resources["SecondaryTextBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["SecondaryTextColor"]);
-            app.Resources["AccentBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["AccentColor"]);
+            SetColor(app, "BackgroundColor", "#202020");
+            SetColor(app, "PanelColor", "#2B2B2B");
+            SetColor(app, "CardColor", "#323232");
+            SetColor(app, "CardHoverColor", "#383838");
+            SetColor(app, "SurfaceSubtleColor", "#2F2F2F");
+            SetColor(app, "BorderColor", "#3C3C3C");
+            SetColor(app, "PrimaryTextColor", "#FFFFFF");
+            SetColor(app, "SecondaryTextColor", "#A0A0A0");
+            SetColor(app, "AccentColor", "#60CDFF");
+            SetColor(app, "AccentHoverColor", "#4CC2FF");
+            SetColor(app, "AccentPressedColor", "#39B5F5");
+            SetColor(app, "SelectionColor", "#264F78");
+            SetColor(app, "DangerColor", "#E81123");
+            SetColor(app, "DangerHoverColor", "#F1707A");
         }
         else
         {
-            app.Resources["BackgroundColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFFFFF");
-            app.Resources["PanelColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#F6F8FA");
-            app.Resources["CardColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFFFFF");
-            app.Resources["BorderColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#D0D7DE");
-            app.Resources["PrimaryTextColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#1F2328");
-            app.Resources["SecondaryTextColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#656D76");
-            app.Resources["AccentColor"] = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#0969DA");
-
-            app.Resources["BackgroundBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["BackgroundColor"]);
-            app.Resources["PanelBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["PanelColor"]);
-            app.Resources["CardBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["CardColor"]);
-            app.Resources["BorderBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["BorderColor"]);
-            app.Resources["PrimaryTextBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["PrimaryTextColor"]);
-            app.Resources["SecondaryTextBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["SecondaryTextColor"]);
-            app.Resources["AccentBrush"] = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)app.Resources["AccentColor"]);
+            SetColor(app, "BackgroundColor", "#F3F3F3");
+            SetColor(app, "PanelColor", "#FFFFFF");
+            SetColor(app, "CardColor", "#FAFAFA");
+            SetColor(app, "CardHoverColor", "#F0F0F0");
+            SetColor(app, "SurfaceSubtleColor", "#F5F5F5");
+            SetColor(app, "BorderColor", "#E5E5E5");
+            SetColor(app, "PrimaryTextColor", "#1C1C1C");
+            SetColor(app, "SecondaryTextColor", "#616161");
+            SetColor(app, "AccentColor", "#0067C0");
+            SetColor(app, "AccentHoverColor", "#1879CD");
+            SetColor(app, "AccentPressedColor", "#005A9E");
+            SetColor(app, "SelectionColor", "#E5F1FB");
+            SetColor(app, "DangerColor", "#C42B1C");
+            SetColor(app, "DangerHoverColor", "#E81123");
         }
+    }
+
+    private static void SetColor(Application app, string colorKey, string hex)
+    {
+        var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+        app.Resources[colorKey] = color;
+        string brushKey = colorKey.EndsWith("Color", StringComparison.Ordinal)
+            ? colorKey.Substring(0, colorKey.Length - 5) + "Brush"
+            : colorKey + "Brush";
+
+        var brush = new System.Windows.Media.SolidColorBrush(color);
+        brush.Freeze();
+        app.Resources[brushKey] = brush;
     }
 }
