@@ -1,6 +1,6 @@
 # Nexus - Modern Windows File Manager & Automation Tool
 
-[![Download Latest Release](https://img.shields.io/github/v/release/project-devo/Nexus?label=Download%20Nexus%20v1.0&style=for-the-badge&logo=windows&color=0078D6)](https://github.com/project-devo/Nexus/releases/latest)
+[![Download Latest Release](https://img.shields.io/github/v/release/project-devo/Nexus?label=Download%20Nexus%20v1.1&style=for-the-badge&logo=windows&color=0078D6)](https://github.com/project-devo/Nexus/releases/latest)
 [![Tests Passing](https://img.shields.io/badge/tests-18%20passed-brightgreen?style=for-the-badge&logo=dotnet)](https://github.com/project-devo/Nexus)
 
 A high-performance, asynchronous Windows desktop file manager built with **.NET 8**, **WPF**, and **CommunityToolkit.Mvvm**. Designed with clean MVVM architecture, full dependency injection, and high-throughput UI virtualization.
@@ -8,7 +8,7 @@ A high-performance, asynchronous Windows desktop file manager built with **.NET 
 ---
 
 ## 📥 Quick Download (No Install Required)
-1. Download **[`Nexus-v1.0.0-Windows-x64.zip`](https://github.com/project-devo/Nexus/releases/latest)**.
+1. Download **[`Nexus-v1.1.0-Windows-x64.zip`](https://github.com/project-devo/Nexus/releases/latest)**.
 2. Extract the ZIP anywhere on your PC.
 3. Double-click **`Nexus.exe`** to run.
 *(Self-contained: No .NET runtime or SDK installation needed).*
