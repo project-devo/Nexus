@@ -200,6 +200,18 @@ public class ZeroCountToVisibilityConverter : MarkupExtension, IValueConverter
     }
 }
 
+/// <summary>Binds an enum property to ComboBox.SelectedIndex (WPF has no built-in enum↔int conversion).</summary>
+public class EnumToIndexConverter : MarkupExtension, IValueConverter
+{
+    public override object ProvideValue(IServiceProvider serviceProvider) => this;
+
+    public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        => value is Enum e ? System.Convert.ToInt32(e) : -1;
+
+    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        => value is int i && i >= 0 ? Enum.ToObject(targetType, i) : Binding.DoNothing;
+}
+
 public class SortDirectionToGlyphConverter : MarkupExtension, IValueConverter
 {
     public override object ProvideValue(IServiceProvider serviceProvider) => this;

@@ -24,6 +24,7 @@
         <conv:FileIconBrushConverter x:Key="FileIconBrush"/>
         <conv:ZeroCountToVisibilityConverter x:Key="ZeroCountToVis"/>
         <conv:SortDirectionToGlyphConverter x:Key="SortDirGlyph"/>
+        <conv:EnumToIndexConverter x:Key="EnumToIndex"/>
 
         <!-- Context Menu -->
         <ContextMenu x:Key="RowContextMenu" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
@@ -57,7 +58,7 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="36,8,12,8"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
@@ -111,15 +112,73 @@
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="10,6"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="10,5,30,5"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <!-- Full template: the system ComboBox ignores Background and painted white text on a white box. -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="border" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4" SnapsToDevicePixels="True"/>
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              VerticalAlignment="Center" HorizontalAlignment="Left"
+                                              IsHitTestVisible="False"/>
+                            <TextBlock Text="&#xE70D;" FontFamily="{StaticResource SymbolFontFamily}" FontSize="10"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0"
+                                       IsHitTestVisible="False"/>
+                            <ToggleButton Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent"/>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                <Border Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1" CornerRadius="6" Padding="2,4" Margin="0,4,0,0"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <ScrollViewer>
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource SecondaryTextBrush}"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource CardHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Setter Property="ItemContainerStyle">
                 <Setter.Value>
                     <Style TargetType="ComboBoxItem">
-                        <Setter Property="Background" Value="{DynamicResource CardBrush}"/>
+                        <Setter Property="Background" Value="Transparent"/>
                         <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
                         <Setter Property="Padding" Value="10,6"/>
-                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="FontSize" Value="13"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="ComboBoxItem">
@@ -151,8 +210,8 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="Margin" Value="0,3"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Margin" Value="0,4"/>
         </Style>
     </Window.Resources>
     
@@ -302,20 +361,20 @@
                     <Rectangle Width="1" Height="20" Fill="{DynamicResource BorderBrush}" Margin="8,0,8,0" VerticalAlignment="Center"/>
 
                     <!-- Type Filter -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
-                        <TextBlock Text="Type:" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <ComboBox ItemsSource="{Binding AvailableExtensions}" 
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <TextBlock Text="Type" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox ItemsSource="{Binding AvailableExtensions}"
                                   SelectedItem="{Binding SelectedExtension}"
                                   Style="{StaticResource ModernComboBox}"
-                                  MinWidth="90" Height="28"/>
+                                  MinWidth="90" Height="32"/>
                     </StackPanel>
 
                     <!-- Size Filter -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
-                        <TextBlock Text="Size:" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <ComboBox SelectedIndex="{Binding SelectedSizeFilter, Mode=TwoWay}"
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <TextBlock Text="Size" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox SelectedIndex="{Binding SelectedSizeFilter, Mode=TwoWay, Converter={StaticResource EnumToIndex}}"
                                   Style="{StaticResource ModernComboBox}"
-                                  MinWidth="110" Height="28">
+                                  MinWidth="110" Height="32">
                             <ComboBoxItem Content="Any Size"/>
                             <ComboBoxItem Content="Tiny (&lt;1KB)"/>
                             <ComboBoxItem Content="Small (1-100KB)"/>
@@ -326,11 +385,11 @@
                     </StackPanel>
 
                     <!-- Date Filter -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
-                        <TextBlock Text="Date:" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <ComboBox SelectedIndex="{Binding SelectedDateFilter, Mode=TwoWay}"
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <TextBlock Text="Date" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox SelectedIndex="{Binding SelectedDateFilter, Mode=TwoWay, Converter={StaticResource EnumToIndex}}"
                                   Style="{StaticResource ModernComboBox}"
-                                  MinWidth="100" Height="28">
+                                  MinWidth="100" Height="32">
                             <ComboBoxItem Content="Any Date"/>
                             <ComboBoxItem Content="Today"/>
                             <ComboBoxItem Content="This Week"/>
@@ -342,10 +401,10 @@
 
                     <!-- Sort Field & Direction -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
-                        <TextBlock Text="Sort:" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <ComboBox SelectedIndex="{Binding SortField, Mode=TwoWay}"
+                        <TextBlock Text="Sort" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox SelectedIndex="{Binding SortField, Mode=TwoWay, Converter={StaticResource EnumToIndex}}"
                                   Style="{StaticResource ModernComboBox}"
-                                  MinWidth="105" Height="28" Margin="0,0,4,0">
+                                  MinWidth="105" Height="32" Margin="0,0,4,0">
                             <ComboBoxItem Content="Name"/>
                             <ComboBoxItem Content="Size"/>
                             <ComboBoxItem Content="Date Modified"/>
@@ -354,25 +413,33 @@
                         </ComboBox>
                         <Button Command="{Binding ToggleSortDirectionCommand}"
                                 Style="{StaticResource FluentSecondaryButton}"
-                                Height="28" Padding="8,4"
+                                Height="32" Width="32" Padding="0"
                                 ToolTip="Toggle Ascending/Descending">
-                            <TextBlock Text="{Binding SortDirection, Converter={StaticResource SortDirGlyph}}" 
-                                       FontFamily="{StaticResource SymbolFontFamily}" 
-                                       FontSize="11"/>
+                            <TextBlock Text="{Binding SortDirection, Converter={StaticResource SortDirGlyph}}"
+                                       FontFamily="{StaticResource SymbolFontFamily}"
+                                       FontSize="13"/>
                         </Button>
                     </StackPanel>
                 </WrapPanel>
 
                 <!-- Right: Selection Controls -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Select All" 
-                            Command="{Binding SelectAllFilesCommand}"
+                    <Button Command="{Binding SelectAllFilesCommand}"
                             Style="{StaticResource FluentSecondaryButton}"
-                            Height="28" Padding="10,4"/>
-                    <Button Content="Clear" 
-                            Command="{Binding ClearSelectionCommand}"
+                            ToolTip="Select all visible files">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8B3;" FontFamily="{StaticResource SymbolFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Select All" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding ClearSelectionCommand}"
                             Style="{StaticResource FluentSecondaryButton}"
-                            Height="28" Padding="10,4"/>
+                            ToolTip="Clear selection">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE894;" FontFamily="{StaticResource SymbolFontFamily}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Clear" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
@@ -400,16 +467,16 @@
                     <!-- Locations Header -->
                     <StackPanel Grid.Row="0" Margin="0,0,0,12">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource SymbolFontFamily}" 
-                                       FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" 
-                                       Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="SCAN LOCATIONS" 
-                                       FontSize="11" FontWeight="Bold"
-                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                            <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource SymbolFontFamily}"
+                                       FontSize="13" Foreground="{DynamicResource AccentBrush}"
+                                       Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="SCAN LOCATIONS"
+                                       FontSize="12" FontWeight="Bold"
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Text="Select directories to monitor and search"
-                                   FontSize="12"
+                                   FontSize="13" TextWrapping="Wrap"
                                    Foreground="{DynamicResource SecondaryTextBrush}"
                                    Margin="0,4,0,0"/>
                     </StackPanel>
@@ -434,12 +501,12 @@
                                                       RelativeSource={RelativeSource AncestorType=Window}}"
                                                       CommandParameter="{Binding}"/>
                                             
-                                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                                <TextBlock Text="{Binding Name}" 
-                                                           FontSize="13" FontWeight="SemiBold"
+                                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontSize="14" FontWeight="SemiBold"
                                                            Foreground="{DynamicResource PrimaryTextBrush}"/>
-                                                <TextBlock Text="{Binding Path}" 
-                                                           FontSize="11"
+                                                <TextBlock Text="{Binding Path}"
+                                                           FontSize="12" Margin="0,2,0,0"
                                                            Foreground="{DynamicResource SecondaryTextBrush}"
                                                            TextTrimming="CharacterEllipsis"
                                                            ToolTip="{Binding Path}"/>
@@ -451,8 +518,8 @@
                                                     Visibility="{Binding IsSystemLocation, Converter={StaticResource BoolToInverseVis}}"
                                                     Style="{StaticResource FluentIconButton}"
                                                     ToolTip="Remove custom location"
-                                                    Width="24" Height="24" Padding="0">
-                                                <TextBlock Text="&#xE711;" FontFamily="{StaticResource SymbolFontFamily}" FontSize="10" Foreground="{DynamicResource DangerBrush}"/>
+                                                    Width="28" Height="28" Padding="0">
+                                                <TextBlock Text="&#xE711;" FontFamily="{StaticResource SymbolFontFamily}" FontSize="12" Foreground="{DynamicResource DangerBrush}"/>
                                             </Button>
                                         </Grid>
                                     </Border>
@@ -484,12 +551,11 @@
                           CanUserDeleteRows="False"
                           Background="{DynamicResource BackgroundBrush}"
                           Foreground="{DynamicResource PrimaryTextBrush}"
-                          GridLinesVisibility="Horizontal"
-                          HorizontalGridLinesBrush="{DynamicResource BorderBrush}"
+                          GridLinesVisibility="None"
                           SelectionMode="Extended"
                           HeadersVisibility="Column"
                           BorderThickness="0"
-                          RowHeight="40"
+                          RowHeight="44"
                           EnableRowVirtualization="True"
                           VirtualizingStackPanel.IsVirtualizing="True"
                           VirtualizingStackPanel.VirtualizationMode="Recycling"
@@ -501,7 +567,7 @@
                             <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
                             <Setter Property="Padding" Value="12,10"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Setter Property="FontSize" Value="11"/>
+                            <Setter Property="FontSize" Value="12"/>
                             <Setter Property="BorderThickness" Value="0,0,0,1"/>
                             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
                         </Style>
@@ -513,7 +579,7 @@
                             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
                             <Setter Property="Padding" Value="12,0"/>
                             <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="FontSize" Value="14"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="DataGridCell">
@@ -541,11 +607,12 @@
                             <Setter Property="ContextMenu" Value="{StaticResource RowContextMenu}"/>
                             <EventSetter Event="MouseDoubleClick" Handler="OnRowDoubleClick"/>
                             <Style.Triggers>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}"/>
-                                </Trigger>
+                                <!-- Selected after hover so a hovered selection stays visibly selected. -->
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Background" Value="{DynamicResource CardHoverBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -563,11 +630,17 @@
                                 </Style>
                             </DataGridCheckBoxColumn.HeaderStyle>
                             <DataGridCheckBoxColumn.ElementStyle>
-                                <Style TargetType="CheckBox">
+                                <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
                                     <Setter Property="HorizontalAlignment" Value="Center"/>
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                 </Style>
                             </DataGridCheckBoxColumn.ElementStyle>
+                            <DataGridCheckBoxColumn.EditingElementStyle>
+                                <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridCheckBoxColumn.EditingElementStyle>
                         </DataGridCheckBoxColumn>
                         
                         <!-- Name Column with Fluent Icon Badge -->
@@ -575,13 +648,13 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border Width="26" Height="26" CornerRadius="4" 
+                                        <Border Width="30" Height="30" CornerRadius="6" 
                                                 Background="{DynamicResource SurfaceSubtleBrush}" 
-                                                Margin="0,0,10,0" VerticalAlignment="Center">
+                                                Margin="0,0,12,0" VerticalAlignment="Center">
                                             <TextBlock Text="{Binding IconKey, Converter={StaticResource FileIconGlyph}}"
                                                        FontFamily="{StaticResource SymbolFontFamily}"
                                                        Foreground="{Binding IconKey, Converter={StaticResource FileIconBrush}}"
-                                                       FontSize="13" 
+                                                       FontSize="15" 
                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                         <TextBlock Text="{Binding DisplayName}" 
@@ -600,7 +673,7 @@
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
                                     <Setter Property="VerticalAlignment" Value="Center"/>
                                     <Setter Property="FontFamily" Value="Consolas, Cascadia Code, monospace"/>
-                                    <Setter Property="FontSize" Value="12"/>
+                                    <Setter Property="FontSize" Value="13"/>
                                     <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
@@ -611,7 +684,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="FontSize" Value="12"/>
+                                    <Setter Property="FontSize" Value="13"/>
                                     <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
@@ -624,7 +697,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="FontSize" Value="12"/>
+                                    <Setter Property="FontSize" Value="13"/>
                                     <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
@@ -635,7 +708,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="FontSize" Value="12"/>
+                                    <Setter Property="FontSize" Value="13"/>
                                     <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
@@ -658,8 +731,17 @@
                                    Foreground="{DynamicResource PrimaryTextBrush}" 
                                    HorizontalAlignment="Center" Margin="0,0,0,6"/>
                         <TextBlock Text="Try scanning your configured locations or adjusting your search &amp; filter criteria." 
-                                   FontSize="13" Foreground="{DynamicResource SecondaryTextBrush}" 
-                                   HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="380"/>
+                                   FontSize="14" Foreground="{DynamicResource SecondaryTextBrush}" 
+                                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="400"/>
+                        <Button Command="{Binding ScanLocationsCommand}"
+                                Style="{StaticResource FluentPrimaryButton}"
+                                IsEnabled="{Binding IsScanning, Converter={StaticResource InverseBool}}"
+                                HorizontalAlignment="Center" Margin="0,20,0,0" Padding="18,8">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE721;" FontFamily="{StaticResource SymbolFontFamily}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Scan Locations" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -684,7 +766,7 @@
                     <TextBlock Text="{Binding StatusMessage}" 
                                Foreground="{DynamicResource PrimaryTextBrush}" 
                                FontWeight="Normal"
-                               FontSize="12"
+                               FontSize="13"
                                VerticalAlignment="Center"/>
                 </StackPanel>
                 
@@ -692,26 +774,26 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
                     <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource SymbolFontFamily}" 
                                Foreground="{DynamicResource SecondaryTextBrush}" 
-                               FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                               FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding DisplayedFiles.Count, Mode=OneWay}" 
                                Foreground="{DynamicResource PrimaryTextBrush}" 
-                               FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                               FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
                     <TextBlock Text=" items" 
                                Foreground="{DynamicResource SecondaryTextBrush}" 
-                               FontSize="12" VerticalAlignment="Center"/>
+                               FontSize="13" VerticalAlignment="Center"/>
                 </StackPanel>
                 
                 <!-- Selected Count -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="&#xE73E;" FontFamily="{StaticResource SymbolFontFamily}" 
                                Foreground="{DynamicResource AccentBrush}" 
-                               FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                               FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding SelectedFiles.Count, Mode=OneWay}" 
                                Foreground="{DynamicResource PrimaryTextBrush}" 
-                               FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                               FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
                     <TextBlock Text=" selected" 
                                Foreground="{DynamicResource SecondaryTextBrush}" 
-                               FontSize="12" VerticalAlignment="Center"/>
+                               FontSize="13" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
         </Border>

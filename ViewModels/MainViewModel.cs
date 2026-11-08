@@ -279,12 +279,15 @@ public partial class MainViewModel : ObservableObject
         var extensions = _searchService.GetUniqueExtensions(AllFiles);
         void Update()
         {
+            // Clear() makes the bound ComboBox push null into SelectedExtension; restore it afterwards.
+            var current = SelectedExtension;
             AvailableExtensions.Clear();
             AvailableExtensions.Add("All");
             foreach (var ext in extensions)
             {
                 AvailableExtensions.Add(ext);
             }
+            SelectedExtension = AvailableExtensions.Contains(current) ? current : "All";
         }
 
         if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
@@ -430,35 +433,41 @@ public partial class MainViewModel : ObservableObject
             SetColor(app, "BackgroundColor", "#202020");
             SetColor(app, "PanelColor", "#2B2B2B");
             SetColor(app, "CardColor", "#323232");
-            SetColor(app, "CardHoverColor", "#383838");
-            SetColor(app, "SurfaceSubtleColor", "#2F2F2F");
-            SetColor(app, "BorderColor", "#3C3C3C");
+            SetColor(app, "CardHoverColor", "#3F3F3F");
+            SetColor(app, "SurfaceSubtleColor", "#3A3A3A");
+            SetColor(app, "BorderColor", "#4A4A4A");
             SetColor(app, "PrimaryTextColor", "#FFFFFF");
-            SetColor(app, "SecondaryTextColor", "#A0A0A0");
+            SetColor(app, "SecondaryTextColor", "#B0B0B0");
             SetColor(app, "AccentColor", "#60CDFF");
             SetColor(app, "AccentHoverColor", "#4CC2FF");
             SetColor(app, "AccentPressedColor", "#39B5F5");
+            SetColor(app, "AccentTextColor", "#000000");
             SetColor(app, "SelectionColor", "#264F78");
             SetColor(app, "DangerColor", "#E81123");
-            SetColor(app, "DangerHoverColor", "#F1707A");
+            SetColor(app, "DangerHoverColor", "#C50F1F");
         }
         else
         {
             SetColor(app, "BackgroundColor", "#F3F3F3");
             SetColor(app, "PanelColor", "#FFFFFF");
-            SetColor(app, "CardColor", "#FAFAFA");
-            SetColor(app, "CardHoverColor", "#F0F0F0");
-            SetColor(app, "SurfaceSubtleColor", "#F5F5F5");
-            SetColor(app, "BorderColor", "#E5E5E5");
-            SetColor(app, "PrimaryTextColor", "#1C1C1C");
-            SetColor(app, "SecondaryTextColor", "#616161");
+            SetColor(app, "CardColor", "#FBFBFB");
+            SetColor(app, "CardHoverColor", "#EDEDED");
+            SetColor(app, "SurfaceSubtleColor", "#EFEFEF");
+            SetColor(app, "BorderColor", "#D4D4D4");
+            SetColor(app, "PrimaryTextColor", "#1A1A1A");
+            SetColor(app, "SecondaryTextColor", "#555555");
             SetColor(app, "AccentColor", "#0067C0");
             SetColor(app, "AccentHoverColor", "#1879CD");
             SetColor(app, "AccentPressedColor", "#005A9E");
-            SetColor(app, "SelectionColor", "#E5F1FB");
+            SetColor(app, "AccentTextColor", "#FFFFFF");
+            SetColor(app, "SelectionColor", "#CCE4F7");
             SetColor(app, "DangerColor", "#C42B1C");
-            SetColor(app, "DangerHoverColor", "#E81123");
+            SetColor(app, "DangerHoverColor", "#A4262C");
         }
+
+        App.IsDarkTheme = IsDarkMode;
+        foreach (Window window in app.Windows)
+            App.ApplyTitleBarTheme(window);
     }
 
     private static void SetColor(Application app, string colorKey, string hex)
