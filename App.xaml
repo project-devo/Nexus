@@ -44,6 +44,7 @@
 
         <!-- Global Window Default -->
         <Style TargetType="Window">
+            <Setter Property="Icon" Value="pack://application:,,,/Assets/logo.ico"/>
             <Setter Property="FontFamily" Value="{StaticResource FluentFontFamily}"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
             <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>

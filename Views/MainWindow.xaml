@@ -9,6 +9,7 @@
         Title="Nexus — Modern File Manager" Height="780" Width="1340"
         MinHeight="620" MinWidth="940"
         WindowStartupLocation="CenterScreen"
+        Icon="pack://application:,,,/Assets/logo.ico"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource PrimaryTextBrush}">
 
@@ -238,12 +239,10 @@
                 
                 <!-- Logo & Brand Title -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Width="32" Height="32" CornerRadius="6" Background="{DynamicResource SurfaceSubtleBrush}" Margin="0,0,10,0">
-                        <TextBlock Text="&#xE8B7;" 
-                                   FontFamily="{StaticResource SymbolFontFamily}"
-                                   Foreground="{DynamicResource AccentBrush}" 
-                                   FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
+                    <Image Source="pack://application:,,,/Assets/logo.png"
+                           Width="32" Height="32"
+                           RenderOptions.BitmapScalingMode="HighQuality"
+                           Margin="0,0,10,0" VerticalAlignment="Center"/>
                     <TextBlock Text="Nexus" 
                                FontSize="17" FontWeight="Bold"
                                Foreground="{DynamicResource PrimaryTextBrush}"

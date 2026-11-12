@@ -9,6 +9,7 @@
         Title="Nexus — Batch Rename" Height="540" Width="780"
         MinHeight="440" MinWidth="620"
         WindowStartupLocation="CenterOwner"
+        Icon="pack://application:,,,/Assets/logo.ico"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource PrimaryTextBrush}">
 
